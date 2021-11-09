@@ -40,23 +40,30 @@ public class SunWeixi{
 						  {0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61},
 						  {0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d }};
 
-	public static int[] rCon = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x04, 0x08, 0x1b, 0x36};
+	public static int[] rCon = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36};
 
 	public static int[][] state = new int[4][4];
 	public static int[][] key = new int[4][4];
-	public static int[] keyExp = new int[512];
+	public static int[] keyExp = new int[176];
+	public static int[] invKeyExp = new int[176];
+
+	public static int[][] output = new int[4][4];
+	public static int[][] deOuput = new int[4][4];
+
+	public static int rconIndex = 0;
+
+	public static int track = 0;
+	public static int detrack = 0;
+
+	public static int invTrack = 0;
+
 
 
 	public static void  main(String[] args){
-		/*System.out.println("Plaintext");
-		//System.out.println(readText("test1plaintext.txt"));
-		readText("test1plaintext.txt");
-		System.out.println();
-		System.out.println("Key");
-		readText("test1key.txt");
-		System.out.println();
-		System.out.println("Key Schedule: ");*/
-		/*System.out.println("Plaintext");
+
+		System.out.println("ENCRYPTION PROCESS");
+		System.out.println("-------------------------");
+		System.out.println("Plaintext");
 		getPlaintText("test1plaintext.txt");
 		for(int i = 0; i < 4; i++){
 			for(int j = 0; j <4; j++){
@@ -71,79 +78,261 @@ public class SunWeixi{
 				System.out.print(Integer.toHexString(key[i][j]));
 			}
 		}
-		System.out.println();*/
-
-		/*int a = 0xaa;
-		int row = (a >> 4) & 0x0f;
-		int col = a & 0x0f;
-		System.out.println("row is: "+row);
-		System.out.println("col is:"+col);*/
-
-		/*getKeyText("test1key.txt");
-		for(int i = 0; i < 4; i++){
-			for(int j = 0; j <4; j++){
-				System.out.print(Integer.toHexString(key[i][j])+" ");
+		System.out.println();
+		System.out.println("Key Schedlue");
+		KeyExpansion();
+		for(int i = 0;i<keyExp.length;i++){
+			if((i%4) == 0 && (i%16) != 0){
+				System.out.print(",");
+			}
+			if((i%16) == 0 && i !=0){
+				System.out.println();
+			}
+			System.out.print(Integer.toHexString(keyExp[i]));
+		}
+		System.out.println();
+		encrypt(state);
+		System.out.println("State after call 1 to MixColumns()");
+		System.out.println("-------------------------");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
 			}
 		}
 		System.out.println();
-		KeyExpansion();
-		for(int i = 0;i<32;i++){
-			System.out.print(Integer.toHexString(keyExp[i]) + " ");
-		}
-		/*int a = 0x63;
-		//int b = 0x11;
-		//System.out.println(a+b);
-		///String ab = Integer.toHexString(a)+Integer.toHexString(b);
-		//String b = Integer.toHexString(a) +"" + "This is a String";
-		//System.out.println(Integer.toHexString(a));
-		String hexS = Integer.toHexString(a);
-		System.out.println(hexS);
-		//int hexs = Integer.parseInt(hexS);
-		
-		//System.out.println("After string: " + hexs);
-		System.out.println("Final: " + );
-		//System.out.println(a);
-		//System.out.println(ab);*/
-		// 96 110
-		/*int a = 0x32;
-		int b = 0x88;
-		int c = 0x31;
-		int d = 0xe0;
-		
-		int e = doubleVal(a);
-		int f = tripleVal(b);
-
-		int g = e ^ f  ^ c ^ d;
-		System.out.println(Integer.toHexString(g));*/
-		/*int a = 0x57;
-		System.out.println(Integer.toHexString(a));
-
-		String b = "57";
-		int c = Integer.parseInt(b,16);
-		System.out.println(Integer.toHexString(c));*/
-		/*for(int i = 0;i<4;i++){
-			for(int j = 0;j<4;j++){
-				for(int m = 0;m<11;m++){
-					System.out.print(Integer.toHexString(keyExp[i][j][m]));
-				}
+		System.out.println();
+		encrypt(output);
+		System.out.println("State after call 2 to MixColumns()");
+		System.out.println("-------------------------");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
 			}
-		}*/
+		}
+		System.out.println();
+		System.out.println();
+		encrypt(output);
+		System.out.println("State after call 3 to MixColumns()");
+		System.out.println("-------------------------");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
+			}
+		}
+		System.out.println();
+		System.out.println();
+		encrypt(output);
+		System.out.println("State after call 4 to MixColumns()");
+		System.out.println("-------------------------");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
+			}
+		}
+		System.out.println();
+		System.out.println();
+		encrypt(output);
+		System.out.println("State after call 5 to MixColumns()");
+		System.out.println("-------------------------");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
+			}
+		}
+		System.out.println();
+		System.out.println();
+		encrypt(output);
+		System.out.println("State after call 6 to MixColumns()");
+		System.out.println("-------------------------");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
+			}
+		}
+		System.out.println();
+		System.out.println();
+		encrypt(output);
+		System.out.println("State after call 7 to MixColumns()");
+		System.out.println("-------------------------");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
+			}
+		}
+		System.out.println();
+		System.out.println();
+		encrypt(output);
+		System.out.println("State after call 8 to MixColumns()");
+		System.out.println("-------------------------");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
+			}
+		}
+		System.out.println();
+		System.out.println();
+		encrypt(output);
+		System.out.println("State after call 9 to MixColumns()");
+		System.out.println("-------------------------");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
+			}
+		}
+		System.out.println();
+		System.out.println();
+		cipher(output);
+		System.out.println("CipherText: ");
+		for(int i = 0;i<output.length;i++){
+			for(int j = 0;j<output[0].length;j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
+			}
+		}
+		System.out.println();
+		System.out.println();
+		System.out.println();
 
-		/*int a = 0x57;
-		int b = 0x45;
 
-		System.out.println(Integer.toHexString(a^b));*/
-
-		int a = 0xC1;
-		int b = a ^rCon[0];
-		System.out.println(Integer.toHexString(b));
+		System.out.println("ENCRYPTION PROCESS");
+		System.out.println("-------------------------");
+		System.out.println("CipherText: ");
+		for(int i = 0; i < 4; i++){
+			for(int j = 0; j <4; j++){
+				System.out.print(Integer.toHexString(output[i][j]) + " ");
+			}
+		}
+		System.out.println();
+		invKeyExpansion();
+		firstDecrypt(output);
+		System.out.println();
 		
+		System.out.println("State after call 1 to InvMixColumns()");
+		System.out.println("-------------------------");
+		decrypt(deOuput);
+		System.out.println();
+		System.out.println();
+		
+		System.out.println("... 2 to 9...");
+		System.out.println("-------------------------");
+		System.out.println("End of processing...");
+		System.out.println();
+
+	}
+
+
+	
+
+	public static void firstDecrypt(int[][] curr){
+		for(int m = 0;m<curr.length;m++){
+			for(int n = 0;n<curr[0].length;n++){
+				deOuput[m][n] = curr[m][n] ^ invKeyExp[detrack];
+				detrack++;
+			}
+		}
+
+		deOuput = InvSubBytes(deOuput);
+		deOuput = InvShiftRows(deOuput);
+
 		
 	}
 
-		public static void KeyExpansion(){
-		int rconIndex = 0;
+	public static void decrypt(int[][] curr){
+		for(int m = 0;m<curr.length;m++){
+			for(int n = 0;n<curr[0].length;n++){
+				deOuput[m][n] = curr[m][n] ^ invKeyExp[detrack];
+				detrack++;
+			}
+		}
+
+		deOuput = InvMixColumns(deOuput);
+		printInv(deOuput);
+		
+		deOuput = InvSubBytes(deOuput);
+		deOuput = InvShiftRows(deOuput);
+		
+
+	}
+
+	public static void printInv(int[][] curr){
+		for(int i = 0;i<curr.length;i++){
+			for(int j = 0;j<curr[0].length;j++){
+				System.out.print(Integer.toHexString(curr[i][j]) + " ");
+			}
+		}
+	}
+
+	public static void encrypt(int[][] curr){
+		for(int m = 0;m<curr.length;m++){
+			for(int n = 0;n<curr[0].length;n++){
+				output[m][n] = curr[m][n] ^ keyExp[track];
+				track++;
+			}
+		}
+		
+		output = SubBytes(output);
+		output = ShiftRows(output);
+		output = MixColumns(output);
+		
+	}
+
+
+	public static void invKeyExpansion(){
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-16];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-32];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-48];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-64];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-80];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-96];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-112];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-128];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-144];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-160];
+			invTrack++;
+		}
+		for(int i = 0;i<16;i++){
+			invKeyExp[invTrack] = keyExp[keyExp.length+i-176];
+			invTrack++;
+		}
+
+
+	}
+
+
+	public static void KeyExpansion(){
+		int[] temp = new int[4];
+
 		int keyExpIndex = 0;
+		int tempIndex = 0;
+		int boxVal = 0;
+
 		//put index 0-4 into keyExpansion.
 		for(int i = 0; i < 4; i++){
 			for(int j = 0; j < 4; j++){
@@ -151,26 +340,66 @@ public class SunWeixi{
 				keyExpIndex++;
 			}
 		}
-		//do next
-		/*for(int i = 4; i < keyExp.length; i++){
-			if( (i % 4 ) == 0){
-				keyExp[i] = keyExp[keyExpIndex-4] ^ (rCon[rconIndex] ^ keyExp[keyExpIndex -1]);
-				keyExpIndex++;
-				//rconIndex++;
+		
+		//put the rest of the key.
+		for(int i = 16; i < keyExp.length;i = i + 4){
+			if((i%16) == 0){
+				temp[0] = keyExp[i-4];
+				temp[1] = keyExp[i-3];
+				temp[2] = keyExp[i-2];
+				temp[3] = keyExp[i-1];
+				
+				temp = firstToLast(temp);
+				
+				for(int j = 0; j<4;j++){
+					temp[j] = checkInBox(temp[j],sbox);
+				}
+
+
+				temp[0] = temp[0] ^ rCon[rconIndex];
+
+				rconIndex++;
+
+				keyExp[i] = keyExp[i-16] ^ temp[0];
+				keyExp[i+1] = keyExp[i-15] ^ temp[1];
+				keyExp[i+2] = keyExp[i-14] ^ temp[2];
+				keyExp[i+3] = keyExp[i-13] ^ temp[3];	
+
+				
+				
+				tempIndex = 0;
 			}else{
-				keyExp[i] = keyExp[keyExpIndex - 4] ^ keyExp[keyExpIndex - 1];
-				keyExpIndex++;
-			}
+				keyExp[i] = keyExp[i-16] ^ keyExp[i-4];
+				keyExp[i+1] = keyExp[i-15] ^ keyExp[i-3];
+				keyExp[i+2] = keyExp[i-14] ^ keyExp[i-2];
+				keyExp[i+3] = keyExp[i-13] ^ keyExp[i-1];
 			
-		}*/
-		//System.out.println(keyExpIndex);
-		//keyExp[16] = keyExp[] ^ (rCon[0] ^ keyExp[15]);
+			}
+
+		}
+		
 	}
 
+	public static int checkInBox(int curr, int[][] box){
+		int row = (curr >> 4) & 0x0f;
+		int col = curr & 0x0f;
+		int result = 0;
 
+		result = box[row][col];
 
+		return result;
+	}
 
+	public static int[] firstToLast(int[] curr){
+		int[] result = new int[curr.length];
 
+		result[0] = curr[1];
+		result[1] = curr[2];
+		result[2] = curr[3];
+		result[3] = curr[0];
+		return result;
+
+	}
 
 	public static void getPlaintText(String fileName){
 		String line = null;
@@ -269,39 +498,64 @@ public class SunWeixi{
 
 
 	public static int[][] ShiftRows(int[][] curr){
-		int[][] result = null;
-		//first line does not change
-		for(int i = 0; i<curr.length;i++){
-			result[0][i] = curr[0][i];
-		}
-		//second line: the index 1 move to index 0.
-		result[1][0] = curr[1][1];
-		result[1][1] = curr[1][2];
-		result[1][2] = curr[1][3];
-		result[1][3] = curr[1][0];
-		//third line: the index 2 move to index 0.
-		result[2][0] = curr[2][2];
-		result[2][1] = curr[2][3];
-		result[2][2] = curr[2][0];
-		result[2][3] = curr[2][1];
-		//forth line: the index 3 move to index 0. 
-		result[3][0] = curr[3][3];
-		result[3][1] = curr[3][0];
-		result[3][2] = curr[3][1];
-		result[3][3] = curr[3][2];
+		int[][] result = new int[4][4];
+
+		result[0][0] = curr[0][0];
+		result[0][1] = curr[1][1];
+		result[0][2] = curr[2][2];
+		result[0][3] = curr[3][3];
+
+		result[1][0] = curr[1][0];
+		result[1][1] = curr[2][1];
+		result[1][2] = curr[3][2];
+		result[1][3] = curr[0][3];
+
+		result[2][0] = curr[2][0];
+		result[2][1] = curr[3][1];
+		result[2][2] = curr[0][2];
+		result[2][3] = curr[1][3];
+
+		result[3][0] = curr[3][0];
+		result[3][1] = curr[0][1];
+		result[3][2] = curr[1][2];
+		result[3][3] = curr[2][3];
+
+		
+	
 
 		return result;
 	}
 
 	public static int[][] InvShiftRows(int[][] curr){
-		return ShiftRows(curr);
+		int[][] result = new int[4][4];
+
+		result[0][0] = curr[0][0];
+		result[0][1] = curr[3][1];
+		result[0][2] = curr[2][2];
+		result[0][3] = curr[1][3];
+
+		result[1][0] = curr[1][0];
+		result[1][1] = curr[0][1];
+		result[1][2] = curr[3][2];
+		result[1][3] = curr[2][3];
+
+		result[2][0] = curr[2][0];
+		result[2][1] = curr[1][1];
+		result[2][2] = curr[0][3];
+		result[2][3] = curr[3][1];
+
+		result[3][0] = curr[3][0];
+		result[3][1] = curr[2][1];
+		result[3][2] = curr[1][2];
+		result[3][3] = curr[0][3];
+
+		return result;
 	}
 
-		public static int doubleVal(int curr){
+	public static int doubleVal(int curr){
 		int result = curr << 1; 
 		int lastDig = result & 0x00000100;
 		if(lastDig != 0){
-			System.out.println(" lastDig != 0");
 			result = result & 0x000000ff;
 			result = result ^ 0x1b;
 		}
@@ -314,18 +568,112 @@ public class SunWeixi{
 
 	public static int[][] MixColumns(int[][] curr){
 		int[][] result = new int[4][4];
-		for(int i = 0; i< 4; i++){
-			result[0][i] = doubleVal(curr[0][i]) ^ tripleVal(curr[1][i] ^ curr[2][i] ^ curr[3][i]);
-			result[1][i] = curr[0][i] ^ doubleVal(curr[1][i]) ^ tripleVal(curr[2][i] ^ curr[3][i]);
-			result[2][i] = curr[0][i] ^ curr[1][i] ^ doubleVal(curr[2][i]) ^ tripleVal(curr[3][i]);
-			result[3][i] = tripleVal(curr[0][i]) ^ curr[1][i] ^ curr[2][i] ^ tripleVal(curr[3][i]);
-		}
+
+		result[0][0] = doubleVal(curr[0][0]) ^ tripleVal(curr[0][1]) ^ curr[0][2] ^ curr[0][3];
+		result[0][1] = curr[0][0] ^ doubleVal(curr[0][1]) ^ tripleVal(curr[0][2]) ^ curr[0][3];
+		result[0][2] = curr[0][0] ^ curr[0][1] ^ doubleVal(curr[0][2]) ^ tripleVal(curr[0][3]);
+		result[0][3] = tripleVal(curr[0][0]) ^ curr[0][1] ^ curr[0][2] ^ doubleVal(curr[0][3]);
+
+		result[1][0] = doubleVal(curr[1][0]) ^ tripleVal(curr[1][1]) ^ curr[1][2] ^ curr[1][3];
+		result[1][1] = curr[1][0] ^ doubleVal(curr[1][1]) ^ tripleVal(curr[1][2]) ^ curr[1][3];
+		result[1][2] = curr[1][0] ^ curr[1][1] ^ doubleVal(curr[1][2]) ^ tripleVal(curr[1][3]);
+		result[1][3] = tripleVal(curr[1][0]) ^ curr[1][1] ^ curr[1][2] ^ doubleVal(curr[1][3]);
+
+		result[2][0] = doubleVal(curr[2][0]) ^ tripleVal(curr[2][1]) ^ curr[2][2] ^ curr[2][3];
+		result[2][1] = curr[2][0] ^ doubleVal(curr[2][1]) ^ tripleVal(curr[2][2]) ^ curr[2][3];
+		result[2][2] = curr[2][0] ^ curr[2][1] ^ doubleVal(curr[2][2]) ^ tripleVal(curr[2][3]);
+		result[2][3] = tripleVal(curr[2][0]) ^ curr[2][1] ^ curr[2][2] ^ doubleVal(curr[2][3]);
+
+		result[3][0] = doubleVal(curr[3][0]) ^ tripleVal(curr[3][1]) ^ curr[3][2] ^ curr[3][3];
+		result[3][1] = curr[3][0] ^ doubleVal(curr[3][1]) ^ tripleVal(curr[3][2]) ^ curr[3][3];
+		result[3][2] = curr[3][0] ^ curr[3][1] ^ doubleVal(curr[3][2]) ^ tripleVal(curr[3][3]);
+		result[3][3] = tripleVal(curr[3][0]) ^ curr[3][1] ^ curr[3][2] ^ doubleVal(curr[3][3]);
+
+
 		return result;
 	}
 
 	public static int[][] InvMixColumns(int[][] curr){
-		return MixColumns(curr);
+		int[][] result = new int[4][4];
+
+		result[0][0] = eVal(curr[0][0]) ^ bVal(curr[0][1]) ^ dVal(curr[0][2]) ^ nineVal(curr[0][3]);
+		result[0][1] = nineVal(curr[0][0]) ^ eVal(curr[0][1]) ^ bVal(curr[0][2]) ^ dVal(curr[0][3]);
+		result[0][2] = dVal(curr[0][0]) ^ nineVal(curr[0][1]) ^ eVal(curr[0][2]) ^ bVal(curr[0][3]);
+		result[0][3] = bVal(curr[0][0]) ^ dVal(curr[0][1]) ^ nineVal(curr[0][2]) ^ eVal(curr[0][3]);
+
+		result[1][0] = eVal(curr[1][0]) ^ bVal(curr[1][1]) ^ dVal(curr[1][2]) ^ nineVal(curr[1][3]);
+		result[1][1] = nineVal(curr[1][0]) ^ eVal(curr[1][1]) ^ bVal(curr[1][2]) ^ dVal(curr[1][3]);
+		result[1][2] = dVal(curr[1][0]) ^ nineVal(curr[1][1]) ^ eVal(curr[1][2]) ^ bVal(curr[1][3]);
+		result[1][3] = bVal(curr[1][0]) ^ dVal(curr[1][1]) ^ nineVal(curr[1][2]) ^ eVal(curr[1][3]);
+
+		result[2][0] = eVal(curr[2][0]) ^ bVal(curr[2][1]) ^ dVal(curr[2][2]) ^ nineVal(curr[2][3]);
+		result[2][1] = nineVal(curr[2][0]) ^ eVal(curr[2][1]) ^ bVal(curr[2][2]) ^ dVal(curr[2][3]);
+		result[2][2] = dVal(curr[2][0]) ^ nineVal(curr[2][1]) ^ eVal(curr[2][2]) ^ bVal(curr[2][3]);
+		result[2][3] = bVal(curr[2][0]) ^ dVal(curr[2][1]) ^ nineVal(curr[2][2]) ^ eVal(curr[2][3]);
+
+		result[3][0] = eVal(curr[3][0]) ^ bVal(curr[3][1]) ^ dVal(curr[3][2]) ^ nineVal(curr[3][3]);
+		result[3][1] = nineVal(curr[3][0]) ^ eVal(curr[3][1]) ^ bVal(curr[3][2]) ^ dVal(curr[3][3]);
+		result[3][2] = dVal(curr[3][0]) ^ nineVal(curr[3][1]) ^ eVal(curr[3][2]) ^ bVal(curr[3][3]);
+		result[3][3] = bVal(curr[3][0]) ^ dVal(curr[3][1]) ^ nineVal(curr[3][2]) ^ eVal(curr[3][3]);
+
+		return result;
+	}
+	public static int nineVal(int curr){
+		return doubleVal(doubleVal(doubleVal(curr))) ^ curr;
+	}
+	public static int bVal(int curr){
+		return nineVal(curr) ^ doubleVal(curr);
+	}
+	public static int dVal(int curr){
+		return nineVal(curr)^doubleVal(doubleVal(curr));
+	}
+	public static int eightVal(int curr){
+		return doubleVal(doubleVal(doubleVal(curr)));
+	}
+	public static int eVal(int curr){
+		return eightVal(curr) ^ doubleVal(tripleVal(curr));
+	}
+
+	
+
+	public static void cipher(int[][] curr){
+		for(int m = 0;m<curr.length;m++){
+			for(int n = 0;n<curr[0].length;n++){
+				output[m][n] = curr[m][n] ^ keyExp[track];
+				track++;
+			}
+		}
+		output = SubBytes(output);
+		output = ShiftRows(output); 
+		for(int m = 0;m<output.length;m++){
+			for(int n = 0;n<output[0].length;n++){
+				output[m][n] = output[m][n] ^ keyExp[track];
+				track++;
+			}
+		}
+
 	}
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }
